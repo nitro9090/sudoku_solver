@@ -1,14 +1,19 @@
 package sudoku_solver;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.util.Scanner;
 
 public class Main {
 	public static void main(String args[]) {
-		int SudokuSize = 9;
+		//String fileName = "2x2_sudoku.txt";
+		//String fileName = "9x9_sudoku.txt";
+		String fileName = "6x6_sudoku.txt";
 		
-		int[][] SudokuArray = {
+		int[] sudSize = loadSudSize(fileName);
+		int[][] sudArray = loadSudArray(fileName, sudSize);
+		
+		/*int[][] sudArray = {
 				{0, 0, 0, 0, 0, 0, 0, 7, 1},
 				{3, 0, 0, 0, 8, 0, 0, 5, 9},
 				{0, 0, 0, 0, 2, 0, 8, 0, 0},
@@ -18,85 +23,110 @@ public class Main {
 				{0, 4, 0, 9, 0, 0, 0, 3, 2},
 				{0, 5, 0, 0, 7, 0, 0, 4, 8},
 				{0, 2, 0, 3, 0, 0, 6, 0, 0}
-		};	
-		int[][] Solution = Solver(SudokuArray, SudokuSize);
+		};*/	
+		int[][] Solution = Solver(sudArray, sudSize);
+		
+		for(int column = 0; column < sudSize[0]; column++) {
+			if(column % sudSize[1] == 0){
+				for(int row = 0; row < sudSize[0]+sudSize[2]+1; row++) {
+					System.out.print("-");
+				}
+				System.out.println("");
+			}
+			for(int row = 0; row < sudSize[0]; row++) {
+				if(row % sudSize[2] == 0){
+					System.out.print("|");
+				}
+				System.out.print(Solution[column][row]);
+				if(row == sudSize[0]-1){
+					System.out.print("|");
+				}
+			}
+			System.out.println("");
+			if(column == sudSize[0]-1){
+				for(int row = 0; row < sudSize[0]+sudSize[2]+1; row++) {
+					System.out.print("-");
+				}
+			}
+			
+		}
 	}
-	public static  int[][] Solver(int SudokuVals[][], int size) { 
-		
-		boolean Solved = false;
+	
+	public static  int[][] Solver(int sudSol[][], int[] sudSize) { 
 		int addVal;
-		int[] foundVal = new int[size];
-		boolean Error1 = false;
+		int[] foundVal = new int[sudSize[1]*sudSize[2]];
+		boolean solved = false;
+		boolean error1 = true;
 		
-		while (Solved==false){
-			Solved = true;
-			Error1 = true;
-			for(int horiz=0; horiz<size; horiz++) {
-				for(int vert=0; vert<size; vert++) {
-					if (SudokuVals[horiz][vert]==0){
-						Solved = false;
+		while (solved==false){
+			solved = true;
+			error1 = true;
+			for(int column = 0; column < sudSize[0]; column++) {
+				for(int row = 0; row < sudSize[0]; row++) {
+					if (sudSol[column][row]==0){
+						solved = false;
 						java.util.Arrays.fill(foundVal,0);
-						foundVal = checkVert(horiz, SudokuVals, size, foundVal);
-						foundVal = checkHoriz(vert, SudokuVals, size, foundVal);
-						foundVal = checkBox(horiz, vert, SudokuVals, size, foundVal);
-						addVal = checkVal(foundVal, size);
-						if(addVal>0) {
-							SudokuVals[horiz][vert] = addVal;
-							System.out.println(addVal + " "+ horiz +" "+ vert);
-							Error1 = false;
+						
+						foundVal = checkRow(column, sudSol, sudSize, foundVal);
+						foundVal = checkColumn(row, sudSol, sudSize, foundVal);
+						foundVal = checkBox(column, row, sudSize, sudSol, foundVal);
+						addVal = checkVal(foundVal, sudSize);
+						
+						if(addVal > 0) {
+							sudSol[column][row] = addVal;
+							error1 = false;
 						}	
 					}							
 				}
 			}
-			if(Error1 == true){
-				Solved = true;
-				System.out.println("No solution found");
+			if(error1 == true  && solved == false){
+				System.out.println("Can't solve (this code doesn't have a guessing method included, so it can't solve hard sudoku)");
+				break;
 			}	
 		}
-	return SudokuVals;	   
+	return sudSol;	   
 	}
 		
-	public static  int[] checkVert(int horiz, int SudokuVals[][], int size, int[] foundVal) { 
-		for(int i=0;i<size;i++){
-			if(SudokuVals[horiz][i]>0) {
-				foundVal[SudokuVals[horiz][i]-1] = SudokuVals[horiz][i];	
+	public static  int[] checkRow(int column, int sudVals[][], int[] sudSize, int[] foundVal) { 
+		for(int i=0;i<sudSize[0];i++){
+			if(sudVals[column][i]>0) {
+				foundVal[sudVals[column][i]-1] = sudVals[column][i];	
 			}	
 		}
 		return foundVal;	   
 	}
 	
-	public static  int[] checkHoriz(int vert, int SudokuVals[][], int size, int[] foundVal) { 
-		for(int i=0;i<size;i++){
-			if(SudokuVals[i][vert]>0) {
-				foundVal[SudokuVals[i][vert]-1] = SudokuVals[i][vert];	
+	public static  int[] checkColumn(int row, int sudVals[][], int[] sudSize, int[] foundVal) { 
+		for(int i=0;i<sudSize[0];i++){
+			if(sudVals[i][row]>0) {
+				foundVal[sudVals[i][row]-1] = sudVals[i][row];	
 			}	
 		}
 		return foundVal;	   
 	}
 	
-	public static  int[] checkBox(int horiz,int vert, int SudokuVals[][], int size, int[] foundVal) { 
-		int div = 3;
-		int horizPos = (int) Math.floor(horiz/3)*div;
-		int vertPos = (int) Math.floor(vert/3)*div;
+	public static  int[] checkBox(int column,int row, int[] sudSize, int sudVals[][], int[] foundVal) { 
+		int columnPos = (int) Math.floor(column/sudSize[1])*sudSize[1];
+		int rowPos = (int) Math.floor(row/sudSize[2])*sudSize[2];
 		
-		for(int i=horizPos; i<horizPos+div; i++){
-			for(int j=vertPos; j<vertPos+div; j++){
-				if(SudokuVals[i][j]>0) {
-					foundVal[SudokuVals[i][j]-1] = SudokuVals[i][j];	
+		for(int i=columnPos; i<columnPos+sudSize[1]; i++){
+			for(int j=rowPos; j<rowPos+sudSize[2]; j++){
+				if(sudVals[i][j]>0) {
+					foundVal[sudVals[i][j]-1] = sudVals[i][j];	
 				}
 			}	
 		}
 		return foundVal;	   
 	}
 	
-	public static  int checkVal(int[] foundVal, int size) {
+	public static  int checkVal(int[] foundVal, int[] sudSize) {
 		int addVal = 0;
 		
-		for (int i=0; i< size; i++){
+		for (int i=0; i< sudSize[1]*sudSize[2]; i++){
 			if (foundVal[i]==0) {
 				if (addVal>0){
-					i = size+1;
 					addVal = 0;
+					break;
 				}
 				else {
 					addVal = i+1;
@@ -105,71 +135,48 @@ public class Main {
 		}
 		return addVal;	   
 	}
+	
+	public static int[] loadSudSize(String fileName) {
+		int[] sudSize = new int[3];
+		Scanner sc1 = null;
+		
+		try {
+			sc1 = new Scanner(new File(fileName));
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		sudSize[0] = sc1.nextInt(); //number of columns/rows
+		sudSize[1] = sc1.nextInt(); //number of column divisions
+		sudSize[2] = sc1.nextInt(); //number of row divisions
+		
+		sc1.close();
+		return sudSize;
+	}
+
+	private static int[][] loadSudArray(String fileName, int[] sudSize) {
+		int[][] sudArray = new int[sudSize[0]][sudSize[0]];
+		Scanner sc1 = null;
+		
+		try {
+			sc1 = new Scanner(new File(fileName));
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		sc1.nextInt(); //skip number of columns/row value
+		sc1.nextInt(); //skip number of column divisions value
+		sc1.nextInt(); //skip number of row divisions value
+		
+		for(int column=0; column < sudSize[0]; column++) {
+			for(int row=0; row < sudSize[0]; row++) {
+				sudArray[column][row] = sc1.nextInt();
+			}
+		}
+		
+		sc1.close();
+		return sudArray;
+	}
 }
-
-/*String file_name = "SudokuFile.txt";
-
-try {
-	   ReadFile file = new ReadFile(file_name);
-	   String[] aryLines = file.OpenFile();
-}
-catch (IOException e) {
-	   System.out.println(e.getMessage() );
-}
-	   File file = new File("SudokuFile.txt");
-Scanner SudokuFile;
-try {
-	SudokuFile = new Scanner(file);
-} catch (FileNotFoundException e) {
-	// TODO Auto-generated catch block
-	System.out.println("This sucks");
-	e.printStackTrace();
-}
-List<Float> temps = new ArrayList<Float>();
-while(SudokuFile.hasNext()){
-	   float Values = SudokuFile.nextFloat();
-	   temps.add(Values);
-}
-SudokuFile.close();
-
-Float[] tempsArray = temps.toArray(new Float[0]);
-
-for(Float s: tempsArray){
-	   System.out.println(s);
-}
-
-}
-public class ReadFile {
-private String path;
-
-public ReadFile(string file_path) {
-	   path = file_path;
-}
-
-public String[] OpentFile() throws IOException {
-	   FileReader fr = new FileReader(path);
-	   BufferedReader textReader = new BufferedReader(fr);
-
-	   int numberOfLines = readLines();
-	   String[] textData = new String[numberOfLines];
-
-	   int i;
-	   for (i=0; i<numberOfLines; i++) {
-		   textData[i] = textReader.readLine();
-	   }
-	   textReader.close();
-	   return textData;
-}
-
-int readLines() throws IOException {
-	   FileReader file_to_read = new FileReader(path);
-	   BufferedReader bf = new BufferedReader(file_to_read);
-
-	   String aLine;
-	   int numberOfLines = 0;
-
-	   while((aline = bf.readLine())!=nuull){
-		   numberOfLines++;
-	   }
-}*/
-
